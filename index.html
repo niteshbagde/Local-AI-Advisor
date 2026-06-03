@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local AI Ecosystem Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #111118;
+    --panel2: #16161f;
+    --border: #2a2a3a;
+    --accent: #7c6aff;
+    --accent2: #ff6a9d;
+    --accent3: #6affcf;
+    --accent4: #ffb86a;
+    --text: #e8e8f0;
+    --muted: #6b6b88;
+    --green: #6affcf;
+    --red: #ff6a6a;
+    --yellow: #ffdb6a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif;
+         min-height: 100vh; }
+  
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0d0d1a 0%, #111125 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex; align-items: center; gap: 20px;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .logo { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--accent);
+          letter-spacing: 3px; text-transform: uppercase; }
+  header h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+  header p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge { margin-left: auto; background: linear-gradient(135deg, var(--accent), var(--accent2));
+           color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background: var(--border); }
+
+  /* INPUT PANEL */
+  .input-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 32px;
+  }
+  .input-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+  textarea {
+    width: 100%; min-height: 140px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 11px;
+    padding: 16px; resize: vertical; outline: none;
+    transition: border-color .2s;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #5a4adf);
+    color: #fff; border: none; padding: 14px 28px;
+    border-radius: 8px; font-weight: 600; font-size: 14px;
+    cursor: pointer; white-space: nowrap;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 20px rgba(124,106,255,.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(124,106,255,.5); }
+  .btn-secondary {
+    background: transparent; color: var(--accent);
+    border: 1px solid var(--accent); padding: 8px 16px;
+    border-radius: 6px; font-size: 12px; cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-secondary:hover { background: rgba(124,106,255,.1); }
+  .quick-fill { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .quick-fill span { font-size: 11px; color: var(--muted); align-self: center; }
+
+  /* SPEC GRID */
+  .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .spec-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; text-align: center;
+    transition: border-color .2s;
+  }
+  .spec-card:hover { border-color: var(--accent); }
+  .spec-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .spec-card .val  { font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700; color: var(--accent); }
+  .spec-card .lbl  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .score-bar { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
+  .score-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .score-dot.on { background: var(--accent); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab {
+    padding: 10px 20px; font-size: 13px; font-weight: 500;
+    cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: color .2s, border-color .2s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* MODEL CARDS */
+  .model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .model-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; position: relative;
+    transition: transform .2s, border-color .2s, box-shadow .2s;
+    overflow: hidden;
+  }
+  .model-card::before {
+    content:''; position: absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0; transition: opacity .2s;
+  }
+  .model-card:hover { transform: translateY(-3px); border-color: var(--accent);
+                      box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .model-card:hover::before { opacity: 1; }
+  .model-head { display: flex; align-items: start; gap: 12px; margin-bottom: 12px; }
+  .model-icon { font-size: 28px; }
+  .model-name { font-weight: 600; font-size: 15px; }
+  .model-size { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); margin-top: 2px; }
+  .model-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tag {
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  }
+  .tag-free  { background: rgba(106,255,207,.1); color: var(--green); border: 1px solid rgba(106,255,207,.2); }
+  .tag-cpu   { background: rgba(255,184,106,.1); color: var(--yellow); border: 1px solid rgba(255,184,106,.2); }
+  .tag-gpu   { background: rgba(124,106,255,.1); color: var(--accent); border: 1px solid rgba(124,106,255,.2); }
+  .tag-light { background: rgba(106,255,207,.1); color: var(--green); border: 1px solid rgba(106,255,207,.2); }
+  .tag-heavy { background: rgba(255,106,106,.1); color: var(--red); border: 1px solid rgba(255,106,106,.2); }
+  .tag-code  { background: rgba(124,106,255,.1); color: #a78bfa; border: 1px solid rgba(167,139,250,.2); }
+  .req-bar { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+  .req-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; }
+  .req-fill  { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+  .ollama-cmd {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 12px; font-family: 'Space Mono', monospace; font-size: 11px;
+    color: var(--accent3); margin-top: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: border-color .2s;
+  }
+  .ollama-cmd:hover { border-color: var(--accent3); }
+  .copy-hint { font-size: 10px; color: var(--muted); }
+
+  /* PIPELINE */
+  .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-bottom: 32px; }
+  .pipe-step {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 24px 20px; text-align: center; position: relative;
+    transition: background .2s;
+  }
+  .pipe-step:not(:last-child)::after {
+    content: '→'; position: absolute; right: -16px; top: 50%;
+    transform: translateY(-50%); font-size: 20px; color: var(--accent);
+    z-index: 1; background: var(--bg); padding: 0 4px;
+  }
+  .pipe-step:first-child { border-radius: 12px 0 0 12px; }
+  .pipe-step:last-child  { border-radius: 0 12px 12px 0; }
+  .pipe-step:hover { background: var(--panel2); }
+  .pipe-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 8px; }
+  .pipe-icon { font-size: 32px; margin-bottom: 8px; }
+  .pipe-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .pipe-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .pipe-tool { margin-top: 10px; font-family: 'Space Mono', monospace; font-size: 10px;
+               color: var(--accent2); background: rgba(255,106,157,.05);
+               padding: 4px 8px; border-radius: 4px; display: inline-block; }
+
+  /* APP TABLE */
+  .app-table { width: 100%; border-collapse: collapse; }
+  .app-table th {
+    text-align: left; padding: 10px 14px; font-size: 11px; font-family: 'Space Mono', monospace;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  .app-table td { padding: 14px; border-bottom: 1px solid rgba(42,42,58,.5); font-size: 13px; vertical-align: middle; }
+  .app-table tr:hover td { background: var(--panel2); }
+  .app-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .free-badge { background: rgba(106,255,207,.15); color: var(--green);
+                padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .install-link {
+    color: var(--accent); text-decoration: none; font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    padding: 4px 10px; border: 1px solid var(--accent);
+    border-radius: 4px; transition: background .2s;
+  }
+  .install-link:hover { background: rgba(124,106,255,.1); }
+
+  /* SETUP STEPS */
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; display: flex; gap: 16px;
+    align-items: start; transition: border-color .2s;
+  }
+  .step:hover { border-color: var(--accent); }
+  .step-num {
+    min-width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700;
+  }
+  .step-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .step-body p  { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .code-block {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px 14px; font-family: 'Space Mono', monospace; font-size: 11px;
+    color: var(--accent3); margin-top: 8px; line-height: 1.8;
+  }
+  .code-block .comment { color: var(--muted); }
+
+  /* ALERT */
+  .alert {
+    padding: 14px 18px; border-radius: 8px; font-size: 13px;
+    display: flex; gap: 10px; align-items: start; margin-bottom: 20px;
+  }
+  .alert-warn { background: rgba(255,184,106,.08); border: 1px solid rgba(255,184,106,.2); color: var(--yellow); }
+  .alert-info { background: rgba(106,255,207,.08); border: 1px solid rgba(106,255,207,.2); color: var(--green); }
+
+  /* FOOTER */
+  footer {
+    text-align: center; padding: 32px; font-size: 12px; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 40px;
+  }
+
+  @media(max-width: 700px) {
+    .pipeline { grid-template-columns: 1fr 1fr; }
+    .pipe-step:nth-child(2)::after { display: none; }
+    .pipe-step:nth-child(2) { border-radius: 0 12px 0 0; }
+    .pipe-step:nth-child(3) { border-radius: 0 0 0 12px; }
+    header { padding: 16px 20px; flex-wrap: wrap; }
+    .container { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">⬡ AI Ecosystem</div>
+    <h1>Local AI Advisor</h1>
+    <p>Thoughts → Ideas → Code → Prototype — 100% Free</p>
+  </div>
+  <div class="badge">FREE ONLY</div>
+</header>
+
+<div class="container">
+
+  <!-- INPUT -->
+  <div class="section-title">📋 Machine Profile Input</div>
+  <div class="input-panel">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+      Paste your <code style="color:var(--accent3)">machine_profile.json</code> output below, or use a preset to explore recommendations:
+    </p>
+    <div class="input-row">
+      <textarea id="jsonInput" placeholder='Paste JSON from capture_machine.py here...
+Example:
+{
+  "ram": { "total_gb": 16 },
+  "gpu": [{ "vendor": "NVIDIA", "name": "RTX 3060", "vram": "12288 MiB" }],
+  "cpu": { "model": "Intel i7-12700", "cores_logical": 12 },
+  "os": { "system": "Windows" },
+  "tools": { "ollama": false }
+}'></textarea>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn-primary" onclick="analyzeProfile()">⚡ Analyze</button>
+        <button class="btn-secondary" onclick="clearAll()">✕ Clear</button>
+      </div>
+    </div>
+    <div class="quick-fill">
+      <span>Quick fill:</span>
+      <button class="btn-secondary" onclick="loadPreset('low')">🐢 4GB RAM No GPU</button>
+      <button class="btn-secondary" onclick="loadPreset('mid')">🐇 16GB + GTX 1060</button>
+      <button class="btn-secondary" onclick="loadPreset('high')">🚀 32GB + RTX 3090</button>
+      <button class="btn-secondary" onclick="loadPreset('apple')">🍎 Apple M2 16GB</button>
+    </div>
+  </div>
+
+  <!-- SPEC DISPLAY -->
+  <div id="specSection" style="display:none">
+    <div class="section-title">🖥️ Detected Specs</div>
+    <div class="spec-grid" id="specGrid"></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" style="display:none">
+
+    <!-- PIPELINE -->
+    <div class="section-title">🔄 Your AI Creation Pipeline</div>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">01</div>
+        <div class="pipe-icon">💭</div>
+        <div class="pipe-title">Thought</div>
+        <div class="pipe-sub">Raw idea or problem in natural language</div>
+        <div class="pipe-tool" id="tool1">Obsidian / Notion</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">02</div>
+        <div class="pipe-icon">💡</div>
+        <div class="pipe-title">Idea</div>
+        <div class="pipe-sub">Structure with local LLM brainstorming</div>
+        <div class="pipe-tool" id="tool2">Open WebUI</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">03</div>
+        <div class="pipe-icon">💻</div>
+        <div class="pipe-title">Code</div>
+        <div class="pipe-sub">AI-assisted coding with code models</div>
+        <div class="pipe-tool" id="tool3">VS Code + Continue</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">04</div>
+        <div class="pipe-icon">🚀</div>
+        <div class="pipe-title">Prototype</div>
+        <div class="pipe-sub">Run, test, iterate locally</div>
+        <div class="pipe-tool" id="tool4">Docker / Gradio</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('models')">🤖 Recommended Models</div>
+      <div class="tab" onclick="switchTab('apps')">📦 Apps & Tools</div>
+      <div class="tab" onclick="switchTab('setup')">⚙️ Setup Guide</div>
+    </div>
+
+    <!-- MODELS TAB -->
+    <div class="tab-content active" id="tab-models">
+      <div id="alertArea"></div>
+      <div class="model-grid" id="modelGrid"></div>
+    </div>
+
+    <!-- APPS TAB -->
+    <div class="tab-content" id="tab-apps">
+      <table class="app-table">
+        <thead>
+          <tr>
+            <th>App / Tool</th>
+            <th>Purpose</th>
+            <th>Best For</th>
+            <th>Platform</th>
+            <th>Install</th>
+          </tr>
+        </thead>
+        <tbody id="appTable"></tbody>
+      </table>
+    </div>
+
+    <!-- SETUP TAB -->
+    <div class="tab-content" id="tab-setup">
+      <div class="steps" id="setupSteps"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  All recommendations are 100% free & open-source. No subscriptions. No cloud required. 🔒 Your data stays local.
+</footer>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const MODELS = [
+  // TINY (<4GB RAM)
+  { id:'phi3-mini', name:'Phi-3 Mini', icon:'🔬', size:'2.2GB', ram:4, gpu:false,
+    desc:'Microsoft\'s tiny powerhouse. Surprisingly capable at reasoning and coding for its size. Best CPU-only model.',
+    tags:['cpu','light','code','free'], cmdFill:1,
+    cmd:'ollama run phi3:mini',
+    tier:'any' },
+  { id:'qwen2-0.5', name:'Qwen 2.5 0.5B', icon:'⚡', size:'0.4GB', ram:2, gpu:false,
+    desc:'Ultra-light Chinese-English model. Runs on almost any hardware. Great for quick drafts and simple tasks.',
+    tags:['cpu','light','free'], cmdFill:0.2,
+    cmd:'ollama run qwen2.5:0.5b',
+    tier:'any' },
+  { id:'gemma2-2b', name:'Gemma 2 2B', icon:'💎', size:'1.6GB', ram:4, gpu:false,
+    desc:'Google\'s compact model. Excellent instruction following. Perfect for thought-to-idea brainstorming.',
+    tags:['cpu','light','free'], cmdFill:0.4,
+    cmd:'ollama run gemma2:2b',
+    tier:'any' },
+  // MID (8-16GB RAM)
+  { id:'mistral7b', name:'Mistral 7B', icon:'🌪️', size:'4.1GB', ram:8, gpu:false,
+    desc:'The gold standard for 7B models. Fast, smart, great for coding and reasoning. Works on CPU with 8GB RAM.',
+    tags:['cpu','code','free'], cmdFill:0.6,
+    cmd:'ollama run mistral',
+    tier:'mid' },
+  { id:'codellama', name:'Code Llama 7B', icon:'🦙', size:'3.8GB', ram:8, gpu:false,
+    desc:'Meta\'s dedicated code model. Excellent at Python, JS, and explaining code. Your coding co-pilot.',
+    tags:['cpu','code','free'], cmdFill:0.6,
+    cmd:'ollama run codellama',
+    tier:'mid' },
+  { id:'deepseek-coder', name:'DeepSeek Coder 6.7B', icon:'🔍', size:'3.8GB', ram:8, gpu:false,
+    desc:'Top-tier free coding model. Outperforms Code Llama on benchmarks. Ideal for turning ideas into code.',
+    tags:['cpu','code','free'], cmdFill:0.6,
+    cmd:'ollama run deepseek-coder:6.7b',
+    tier:'mid' },
+  { id:'llava', name:'LLaVA 7B (Multimodal)', icon:'👁️', size:'4.5GB', ram:8, gpu:false,
+    desc:'See AND read. Can analyze images, diagrams, screenshots. Great for UI mockup to code workflows.',
+    tags:['cpu','free'], cmdFill:0.6,
+    cmd:'ollama run llava:7b',
+    tier:'mid' },
+  // HIGH (16GB+)
+  { id:'llama3.1-8b', name:'Llama 3.1 8B', icon:'🦙', size:'4.7GB', ram:8, gpu:true,
+    desc:'Meta\'s latest open model. Best-in-class for 8B. Near GPT-3.5 quality for free. All-round champion.',
+    tags:['gpu','code','free'], cmdFill:0.75,
+    cmd:'ollama run llama3.1:8b',
+    tier:'mid' },
+  { id:'qwen2.5-coder', name:'Qwen 2.5 Coder 7B', icon:'🧑‍💻', size:'4.4GB', ram:8, gpu:true,
+    desc:'Best free code model at 7B. Alibaba\'s latest. Exceptional at Python/JS/TypeScript prototyping.',
+    tags:['gpu','code','free'], cmdFill:0.75,
+    cmd:'ollama run qwen2.5-coder:7b',
+    tier:'mid' },
+  { id:'llama3.1-70b', name:'Llama 3.1 70B (Q4)', icon:'🦁', size:'40GB', ram:32, gpu:true,
+    desc:'Near-GPT-4 quality. For high-end machines. Exceptional reasoning, planning, and complex code generation.',
+    tags:['gpu','heavy','code','free'], cmdFill:1,
+    cmd:'ollama run llama3.1:70b-instruct-q4_K_M',
+    tier:'high' },
+  { id:'deepseek-r1', name:'DeepSeek R1 7B', icon:'🧠', size:'4.7GB', ram:8, gpu:true,
+    desc:'Reasoning model trained like o1. Shows its thinking chain. Best for complex problem-solving & architecture planning.',
+    tags:['gpu','code','free'], cmdFill:0.75,
+    cmd:'ollama run deepseek-r1:7b',
+    tier:'mid' },
+  { id:'nomic-embed', name:'Nomic Embed Text', icon:'🔗', size:'0.3GB', ram:2, gpu:false,
+    desc:'Embedding model for RAG (retrieval). Lets you chat with your documents locally. Essential for knowledge bases.',
+    tags:['cpu','light','free'], cmdFill:0.1,
+    cmd:'ollama pull nomic-embed-text',
+    tier:'any' },
+];
+
+const APPS = [
+  { name:'Ollama', icon:'🦙', purpose:'Local model runner', bestFor:'Running ANY model locally via CLI/API', platform:'Win/Mac/Linux', url:'https://ollama.com' },
+  { name:'Open WebUI', icon:'🌐', purpose:'ChatGPT-like interface', bestFor:'Browser-based chat with Ollama models', platform:'Docker/pip', url:'https://github.com/open-webui/open-webui' },
+  { name:'LM Studio', icon:'🎛️', purpose:'GUI model manager', bestFor:'Downloading & running GGUF models with UI', platform:'Win/Mac/Linux', url:'https://lmstudio.ai' },
+  { name:'AnythingLLM', icon:'📂', purpose:'Document RAG chat', bestFor:'Chat with your PDFs, notes, codebase', platform:'Desktop/Docker', url:'https://useanythingllm.com' },
+  { name:'VS Code + Continue', icon:'💻', purpose:'AI code assistant', bestFor:'Autocomplete + chat in your editor, free', platform:'Win/Mac/Linux', url:'https://continue.dev' },
+  { name:'Obsidian + Smart Chat', icon:'📝', purpose:'Thought capture + AI', bestFor:'Building personal knowledge + AI brainstorm', platform:'Win/Mac/Linux', url:'https://obsidian.md' },
+  { name:'Stable Diffusion WebUI', icon:'🎨', purpose:'Image generation', bestFor:'Generate UI mockups, diagrams, concept art', platform:'Win/Mac/Linux', url:'https://github.com/AUTOMATIC1111/stable-diffusion-webui' },
+  { name:'Whisper.cpp', icon:'🎤', purpose:'Speech → Text', bestFor:'Voice-to-thought capture, voice coding', platform:'Win/Mac/Linux', url:'https://github.com/ggerganov/whisper.cpp' },
+  { name:'LocalAI', icon:'🔧', purpose:'OpenAI-compatible API', bestFor:'Use local models with any OpenAI SDK app', platform:'Docker/Binary', url:'https://localai.io' },
+  { name:'Gradio', icon:'🖥️', purpose:'Rapid UI prototyping', bestFor:'Turn Python AI scripts into web apps instantly', platform:'pip install', url:'https://gradio.app' },
+  { name:'Streamlit', icon:'📊', purpose:'Data app builder', bestFor:'Prototype dashboards and AI demos fast', platform:'pip install', url:'https://streamlit.io' },
+  { name:'n8n (self-hosted)', icon:'⚙️', purpose:'AI workflow automation', bestFor:'Chain AI calls, automate idea→code pipelines', platform:'Docker/npm', url:'https://n8n.io' },
+  { name:'Flowise', icon:'🌊', purpose:'LangChain UI builder', bestFor:'Drag-drop AI pipelines and RAG chains', platform:'npm/Docker', url:'https://flowiseai.com' },
+  { name:'TextGen WebUI', icon:'🗨️', purpose:'Advanced model UI', bestFor:'Fine-tuning, LoRA, advanced inference control', platform:'Win/Mac/Linux', url:'https://github.com/oobabooga/text-generation-webui' },
+];
+
+const STEPS = {
+  any: [
+    { n:'1', title:'Install Ollama (Core Engine)', body:'Ollama is the foundation — it lets you run AI models with a single command. Free, open-source, runs on CPU.',
+      code:`# Linux / macOS:\ncurl -fsSL https://ollama.com/install.sh | sh\n\n# Windows:\n# Download installer from https://ollama.com/download` },
+    { n:'2', title:'Pull your first model', body:'Start with a lightweight model that works on any hardware. Phi-3 Mini is excellent for low-RAM machines.',
+      code:`# For any machine (2GB+ RAM):\nollama run phi3:mini\n\n# For 8GB+ RAM:\nollama run mistral\nollama run deepseek-coder:6.7b` },
+    { n:'3', title:'Set up Open WebUI (ChatGPT interface)', body:'Browser-based UI to chat with any local model. Supports file uploads, RAG, image analysis.',
+      code:`# Install with pip (no Docker needed):\npip install open-webui\nopen-webui serve\n# Open http://localhost:8080` },
+    { n:'4', title:'Install VS Code + Continue extension', body:'Add AI code completion and chat directly inside your editor. Free, works with Ollama.',
+      code:`# In VS Code:\n# 1. Install "Continue" extension (Extension ID: Continue.continue)\n# 2. Open Continue panel → Settings\n# 3. Set provider: Ollama, model: deepseek-coder:6.7b\n# 4. Start coding with Tab autocomplete` },
+    { n:'5', title:'Set up AnythingLLM for document RAG', body:'Chat with your own notes, PDFs, codebase. Perfect for building a personal knowledge base.',
+      code:`# Download from: https://useanythingllm.com\n# Connect to your local Ollama instance\n# Drop in PDFs, markdown notes, code files\n# Ask questions across all your documents` },
+    { n:'6', title:'Your Thought→Prototype Workflow', body:'The full loop: capture thoughts in Obsidian → refine with Open WebUI → code with Continue → prototype with Gradio.',
+      code:`# Install Gradio for rapid prototyping:\npip install gradio\n\n# Example: wrap any AI idea as a web app\nimport gradio as gr\nimport requests\n\ndef chat(msg):\n    r = requests.post("http://localhost:11434/api/generate",\n        json={"model":"mistral","prompt":msg,"stream":False})\n    return r.json()["response"]\n\ngr.Interface(fn=chat, inputs="text", outputs="text").launch()` },
+  ]
+};
+
+// ─── PRESETS ─────────────────────────────────────────────────────────────────
+const PRESETS = {
+  low: { "os":{"system":"Linux","release":"22.04"}, "cpu":{"model":"Intel i5-8250U","cores_logical":"4","arch":"x86_64"}, "ram":{"total_gb":4}, "gpu":[{"vendor":"None/Integrated","name":"Intel UHD 620"}], "disk":{"free_gb":50}, "tools":{"ollama":false,"git":true,"python3":true}, "ai_score":1 },
+  mid: { "os":{"system":"Windows","release":"11"}, "cpu":{"model":"Intel i7-9700K","cores_logical":"8","arch":"x86_64"}, "ram":{"total_gb":16}, "gpu":[{"vendor":"NVIDIA","name":"GTX 1060","vram":"6144 MiB"}], "disk":{"free_gb":200}, "tools":{"ollama":false,"git":true,"python3":true}, "ai_score":3 },
+  high: { "os":{"system":"Linux","release":"Ubuntu 22.04"}, "cpu":{"model":"AMD Ryzen 9 5900X","cores_logical":"24","arch":"x86_64"}, "ram":{"total_gb":32}, "gpu":[{"vendor":"NVIDIA","name":"RTX 3090","vram":"24576 MiB"}], "disk":{"free_gb":500}, "tools":{"ollama":true,"git":true,"python3":true,"cuda":true}, "ai_score":5 },
+  apple: { "os":{"system":"Darwin","release":"14.0"}, "cpu":{"model":"Apple M2","cores_logical":"8","arch":"arm64"}, "ram":{"total_gb":16}, "gpu":[{"vendor":"Apple","name":"Apple M2","vram":"Unified 16GB","unified":true}], "disk":{"free_gb":300}, "tools":{"ollama":false,"git":true,"python3":true}, "ai_score":4 },
+};
+
+// ─── LOGIC ───────────────────────────────────────────────────────────────────
+let currentProfile = null;
+
+function loadPreset(key) {
+  document.getElementById('jsonInput').value = JSON.stringify(PRESETS[key], null, 2);
+  analyzeProfile();
+}
+
+function clearAll() {
+  document.getElementById('jsonInput').value = '';
+  document.getElementById('specSection').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'none';
+}
+
+function analyzeProfile() {
+  const raw = document.getElementById('jsonInput').value.trim();
+  let p;
+  try {
+    p = JSON.parse(raw);
+  } catch(e) {
+    alert('Invalid JSON. Please paste valid machine_profile.json output.');
+    return;
+  }
+  currentProfile = p;
+  renderSpecs(p);
+  renderModels(p);
+  renderApps();
+  renderSetup(p);
+  document.getElementById('specSection').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('mainContent').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderSpecs(p) {
+  const ram = p.ram?.total_gb || 0;
+  const gpu = p.gpu?.[0] || {};
+  const score = p.ai_score || scoreHW(ram, gpu);
+  const dots = Array.from({length:5}, (_,i) =>
+    `<div class="score-dot ${i<score?'on':''}"></div>`).join('');
+
+  document.getElementById('specGrid').innerHTML = `
+    <div class="spec-card"><div class="icon">🧠</div><div class="val">${ram}GB</div><div class="lbl">RAM</div></div>
+    <div class="spec-card"><div class="icon">⚙️</div><div class="val">${p.cpu?.cores_logical||'?'}</div><div class="lbl">CPU Threads</div></div>
+    <div class="spec-card"><div class="icon">🎮</div><div class="val">${gpuShort(gpu)}</div><div class="lbl">GPU</div></div>
+    <div class="spec-card"><div class="icon">💾</div><div class="val">${p.disk?.free_gb||'?'}GB</div><div class="lbl">Free Disk</div></div>
+    <div class="spec-card"><div class="icon">🖥️</div><div class="val">${p.os?.system||'?'}</div><div class="lbl">OS</div></div>
+    <div class="spec-card"><div class="icon">⭐</div>
+      <div class="score-bar">${dots}</div>
+      <div class="lbl">AI Capability ${score}/5</div>
+    </div>
+  `;
+}
+
+function gpuShort(g) {
+  if (!g || g.vendor === 'None/Integrated') return 'CPU Only';
+  if (g.vendor === 'Apple') return 'Apple GPU';
+  const n = g.name || '';
+  const m = n.match(/(\d{3,4}[A-Z]*\s*(Ti|Super|XT)?)/i);
+  return m ? m[0] : n.substring(0,8);
+}
+
+function scoreHW(ram, gpu) {
+  let s = 1;
+  if (ram >= 8)  s = 2;
+  if (ram >= 16) s = 3;
+  if (ram >= 32) s = 4;
+  if (ram >= 64) s = 5;
+  if (gpu?.vendor === 'NVIDIA') s = Math.min(5, s+1);
+  if (gpu?.vendor === 'Apple')  s = Math.min(5, s+1);
+  return s;
+}
+
+function renderModels(p) {
+  const ram = p.ram?.total_gb || 0;
+  const gpu = p.gpu?.[0] || {};
+  const hasGPU = gpu.vendor === 'NVIDIA' || gpu.vendor === 'AMD' || gpu.vendor === 'Apple';
+  
+  let vram = 0;
+  if (gpu.vram) {
+    const m = gpu.vram.match(/(\d+)/);
+    if (m) vram = parseInt(m[1]) / (gpu.vram.includes('MiB')||gpu.vram.includes('MB') ? 1024 : 1);
+  }
+  if (gpu.vendor === 'Apple') vram = ram; // unified memory
+
+  // Filter models that can run
+  const runnable = MODELS.filter(m => m.ram <= ram);
+  const ideal    = runnable.filter(m => !m.gpu || hasGPU);
+  const stretch  = MODELS.filter(m => m.ram > ram && m.ram <= ram * 1.5);
+
+  const alert = document.getElementById('alertArea');
+  if (ram < 8) {
+    alert.innerHTML = `<div class="alert alert-warn">⚠️ With ${ram}GB RAM, you're limited to small models. They still work! Consider using Google Colab (free GPU) or Hugging Face Spaces for larger models.</div>`;
+  } else if (!hasGPU) {
+    alert.innerHTML = `<div class="alert alert-info">ℹ️ No dedicated GPU detected. Models will run on CPU — slower but fully functional. 7B models take ~2-5 min/response on modern CPUs.</div>`;
+  } else {
+    alert.innerHTML = '';
+  }
+
+  const toShow = ideal.length > 0 ? ideal : runnable;
+  document.getElementById('modelGrid').innerHTML = toShow.map(m => `
+    <div class="model-card">
+      <div class="model-head">
+        <div class="model-icon">${m.icon}</div>
+        <div>
+          <div class="model-name">${m.name}</div>
+          <div class="model-size">~${m.size} on disk</div>
+        </div>
+      </div>
+      <div class="model-desc">${m.desc}</div>
+      <div class="tags">
+        ${m.tags.map(t => `<span class="tag tag-${t}">${t}</span>`).join('')}
+      </div>
+      <div class="req-bar">
+        <span>${m.ram}GB RAM min</span>
+        <div class="req-track"><div class="req-fill" style="width:${Math.min(100, m.cmdFill*100)}%"></div></div>
+        <span>${m.ram <= ram ? '✅' : '⚠️'}</span>
+      </div>
+      <div class="ollama-cmd" onclick="copyCmd('${m.cmd}', this)">
+        <span>$ ${m.cmd}</span>
+        <span class="copy-hint">click to copy</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderApps() {
+  document.getElementById('appTable').innerHTML = APPS.map(a => `
+    <tr>
+      <td><div class="app-name">${a.icon} ${a.name} <span class="free-badge">FREE</span></div></td>
+      <td style="color:var(--muted)">${a.purpose}</td>
+      <td style="font-size:12px">${a.bestFor}</td>
+      <td style="color:var(--accent);font-size:12px;font-family:'Space Mono',monospace">${a.platform}</td>
+      <td><a class="install-link" href="${a.url}" target="_blank">→ Get</a></td>
+    </tr>
+  `).join('');
+}
+
+function renderSetup(p) {
+  const steps = STEPS.any;
+  document.getElementById('setupSteps').innerHTML = steps.map(s => `
+    <div class="step">
+      <div class="step-num">${s.n}</div>
+      <div class="step-body">
+        <h4>${s.title}</h4>
+        <p>${s.body}</p>
+        <div class="code-block">${s.code.replace(/</g,'&lt;').replace(/\n/g,'<br>').replace(/(#[^\n<]*)/g,'<span class="comment">$1</span>')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyCmd(cmd, el) {
+  navigator.clipboard.writeText(cmd).then(() => {
+    const hint = el.querySelector('.copy-hint');
+    hint.textContent = '✓ copied!';
+    hint.style.color = 'var(--green)';
+    setTimeout(() => { hint.textContent = 'click to copy'; hint.style.color = ''; }, 2000);
+  });
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const idx = ['models','apps','setup'].indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+</script>
+</body>
+</html>
